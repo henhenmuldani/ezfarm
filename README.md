@@ -9,7 +9,7 @@ EzFarm API for listing vegetables, fruits, and medicinal plants which are easy t
 
 | Endpoints     | HTTP Method | Description        |
 | ------------- | ----------- | ------------------ |
-| '`/plants`    | `GET`       | Get all plants     |
+| `/plants`     | `GET`       | Get all plants     |
 | `/plants/:id` | `GET`       | Get plant by id    |
 | `/plants`     | `POST`      | Create new plant   |
 | `/plants`     | `DELETE`    | Delete all plants  |
