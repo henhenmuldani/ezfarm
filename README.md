@@ -16,6 +16,10 @@ EzFarm API for listing vegetables, fruits, and medicinal plants which are easy t
 | `/plants/:id` | `DELETE`    | Delete plant by id |
 | `/plants/:id` | `PUT`       | Update plant by id |
 
+## Database Design/ERD
+
+![ERD](./assets/ezfarm-erd.svg)
+
 ## Getting Started
 
 To install dependencies:
@@ -30,4 +34,4 @@ To run:
 bun run dev
 ```
 
-open http://localhost:3000
+Open http://localhost:3000
