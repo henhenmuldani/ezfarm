@@ -1,7 +1,5 @@
 import { Hono } from "hono";
-import { type Plant, dataPlants } from "./data/plants";
-
-let plants = dataPlants;
+import { prisma } from "./libs/prisma.js";
 
 const app = new Hono();
 
@@ -12,33 +10,36 @@ app.get("/", (c) => {
   });
 });
 
-app.get("/plants", (c) => {
-  if (plants.length === 0) {
-    return c.json({ message: "No plants found" });
-  }
+app.get("/plants", async (c) => {
+  const plants = await prisma.plant.findMany();
 
   return c.json(plants);
 });
 
-app.get("/plants/:id", (c) => {
+app.get("/plants/:id", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
     return c.json({ message: "Invalid ID" });
   }
 
-  const plant = plants.find((plant) => plant.id === parseInt(id));
+  const plant = await prisma.plant.findUnique({
+    where: {
+      id: id,
+    },
+  });
 
   if (!plant) {
+    c.status(404);
     return c.json({ message: "Plant not found" });
   }
 
   return c.json(plant);
 });
 
-app.delete("/plants", (c) => {
-  plants = [];
-  return c.json({ message: "All plants are deleted", plants });
+app.delete("/plants", async (c) => {
+  await prisma.plant.deleteMany();
+  return c.json({ message: "All plants are deleted" });
 });
 
 app.post("/plants", async (c) => {
@@ -48,39 +49,33 @@ app.post("/plants", async (c) => {
     return c.json({ message: "Invalid body" });
   }
 
-  const newPlant: Plant = {
-    id: plants.length + 1,
-    name: body.name,
-    scientificName: body.scientificName,
-    type: body.type,
-    sunlight: body.sunlight,
-    watering: body.watering,
-    harvestTime: body.harvestTime,
-  };
-
-  console.log(newPlant);
-
-  plants = [...plants, newPlant];
+  const newPlant = await prisma.plant.create({
+    data: {
+      name: String(body.name),
+      scientificName: String(body.scientificName),
+      sunlight: String(body.sunlight),
+      watering: String(body.watering),
+      harvestTime: String(body.harvestTime),
+    },
+  });
 
   return c.json({ message: "Plant added", plant: newPlant });
 });
 
-app.delete("/plants/:id", (c) => {
+app.delete("/plants/:id", async (c) => {
   const id = c.req.param("id");
 
   if (!id) {
     return c.json({ message: "Invalid ID" });
   }
 
-  const plant = plants.find((plant) => plant.id === parseInt(id));
+  const deletedPlant = await prisma.plant.delete({
+    where: {
+      id: id,
+    },
+  });
 
-  if (!plant) {
-    return c.json({ message: "Plant not found" });
-  }
-
-  plants = plants.filter((plant) => plant.id !== parseInt(id));
-
-  return c.json({ message: `Plant with ${id} has been deleted` });
+  return c.json({ message: `Plant with ${id} has been deleted`, deletedPlant });
 });
 
 app.put("/plants/:id", async (c) => {
@@ -90,36 +85,56 @@ app.put("/plants/:id", async (c) => {
     return c.json({ message: "Invalid ID" });
   }
 
-  const plant = plants.find((plant) => plant.id === parseInt(id));
-
-  if (!plant) {
-    return c.json({ message: "Plant not found" });
-  }
-
   const body = await c.req.json();
-  const newPlant: Plant = {
-    id: plant.id,
-    name: body.name,
-    scientificName: body.scientificName,
-    type: body.type,
-    sunlight: body.sunlight,
-    watering: body.watering,
-    harvestTime: body.harvestTime,
-  };
-
-  const updatedPlant = plants.map((plant) => {
-    if (plant.id === parseInt(id)) {
-      return newPlant;
-    }
-    return plant;
+  const newPlant = await prisma.plant.update({
+    where: {
+      id: id,
+    },
+    data: {
+      name: body.name ? String(body.name) : undefined,
+      scientificName: body.scientificName
+        ? String(body.scientificName)
+        : undefined,
+      sunlight: body.sunlight ? String(body.sunlight) : undefined,
+      watering: body.watering ? String(body.watering) : undefined,
+      harvestTime: body.harvestTime ? String(body.harvestTime) : undefined,
+    },
   });
-
-  plants = updatedPlant;
 
   return c.json({
     message: `Plant with ${id} has been updated`,
     plant: newPlant,
   });
+});
+
+app.post("/plants/seed", async (c) => {
+  await prisma.plant.createMany({
+    data: [
+      {
+        name: "Tomato",
+        scientificName: "Solanum lycopersicum",
+        sunlight: "Full Sun",
+        watering: "Regular",
+        harvestTime: "60-85 days",
+      },
+      {
+        name: "Carrot",
+        scientificName: "Daucus carota",
+        sunlight: "Full Sun",
+        watering: "Regular",
+        harvestTime: "60-85 days",
+      },
+      {
+        name: "Cucumber",
+        scientificName: "Cucumis sativus",
+        sunlight: "Full Sun",
+        watering: "Regular",
+        harvestTime: "50-70 days",
+      },
+    ],
+  });
+
+  return c.json({ message: "Plants have been seeded" });
 });
 
 console.log("Server is running on port 3000");
